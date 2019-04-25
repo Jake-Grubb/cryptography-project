@@ -29,13 +29,29 @@ def main():
 		exit(1)
 	
 def runOneTwo(port):
+	ssl.OP_NO_TLSv1_3 = True
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
 		TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLS)
 		TLS_Socket.bind(('', int(port)))
 		TLS_Socket.listen(5)
 		print("Server listening on port + " + str(port))
+		while True:
+			(Incoming_Socket, address) = TLS_Socket.accept()
+			_thread.start_new_thread(handleConnection, (Incoming_Socket, address))
+
 
 def runOneThree(port):
-	return(2)
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
+                TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLS)
+                TLS_Socket.bind(('', int(port)))
+                TLS_Socket.listen(5)
+                print("Server listening on port + " + str(port))
+                while True:
+                        (Incoming_Socket, address) = TLS_Socket.accept()
+                        _thread.start_new_thread(handleConnection, (Incoming_Socket, address))
+
+
+def handleConnection(Incoming_Socket, address):
+	print(str(datetime.datetime.now()) + " " + str(address) + " Connected\n")
 
 main()
