@@ -31,27 +31,41 @@ def main():
 def runOneTwo(port):
 	ssl.OP_NO_TLSv1_3 = True
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
+		TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLSv1_2)
+		TLS_Socket.bind(('', int(port)))
+		TLS_Socket.listen(5)
+		print("Server listening on port + " + str(port))
+		while True:
+			try:
+				(Incoming_Socket, address) = TLS_Socket.accept()
+				_thread.start_new_thread(handleConnection, (Incoming_Socket, address))
+			except(ssl.SSLError):
+				print("Connection rejected")
+
+def runOneThree(port):
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
 		TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLS)
 		TLS_Socket.bind(('', int(port)))
 		TLS_Socket.listen(5)
 		print("Server listening on port + " + str(port))
 		while True:
-			(Incoming_Socket, address) = TLS_Socket.accept()
-			_thread.start_new_thread(handleConnection, (Incoming_Socket, address))
-
-
-def runOneThree(port):
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
-                TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLS)
-                TLS_Socket.bind(('', int(port)))
-                TLS_Socket.listen(5)
-                print("Server listening on port + " + str(port))
-                while True:
-                        (Incoming_Socket, address) = TLS_Socket.accept()
-                        _thread.start_new_thread(handleConnection, (Incoming_Socket, address))
-
+			try:
+				(Incoming_Socket, address) = TLS_Socket.accept()
+				_thread.start_new_thread(handleConnection, (Incoming_Socket, address))
+			except(ssl.SSLError):
+				print("Connection rejected")
 
 def handleConnection(Incoming_Socket, address):
-	print(str(datetime.datetime.now()) + " " + str(address) + " Connected\n")
-
+	print(str(datetime.datetime.now()) + " " + str(address) + " Connected")
+	try:
+		while(True):
+			message = Incoming_Socket.recv(4096)
+			if(message == b''):
+				Incoming_Socket.close()
+				print(str(address) + " closed by client")
+				return
+			print(str(address) + " says: " + str(message)[2:-1])
+			Incoming_Socket.send(str.encode("Got msg at: " + str(datetime.datetime.now())))
+	except(ConnectionResetError):
+		print(str(address) + " closed by client")
 main()
