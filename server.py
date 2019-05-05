@@ -14,7 +14,7 @@ import _thread
 def main():
 	if(len(sys.argv) != 3):
 		print("Syntax Error:\npython3 server.py <server-port> <operation_mode>")
-		print("Operation Modes: \n'TLS1.3' = TLS 1.2\n'TLS1.3' = TLS 1.3")
+		print("Operation Modes: \n'TLS1.3' = TLS 1.2\n'TLS1.3' = TLS 1.3\n'Degraded' = degrade")
 		exit(1)
 	os.system("clear")
 	mode = sys.argv[2]
@@ -23,6 +23,8 @@ def main():
 		runOneTwo(port)
 	elif(mode == "TLS1.3"):
 		runOneThree(port)
+	elif(mode == "degrade"):
+		runDegrade(port)
 	else:
 		print("Syntax Error:\npython3 ./server.py <server-port> <operation_mode>")
 		print("Operation Modes: \n'TLS1.2' = TLS 1.2\n'TLS1.3' = TLS 1.3")
@@ -43,6 +45,24 @@ def runOneTwo(port):
 				print("Connection rejected")
 
 def runOneThree(port):
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
+		TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLS)
+		TLS_Socket.bind(('', int(port)))
+		TLS_Socket.listen(5)
+		print("Server listening on port + " + str(port))
+		while True:
+			try:
+				(Incoming_Socket, address) = TLS_Socket.accept()
+				_thread.start_new_thread(handleConnection, (Incoming_Socket, address))
+			except(ssl.SSLError):
+				print("Connection rejected")
+
+def runDegrade(port):
+	ssl.OP_NO_TLSv1_3 = True
+	ssl.OP_NO_TLSv1_2 = True
+	ssl.OP_NO_TLSv1_1 = True
+	ssl.OP_NO_TLSv1 = True
+	ssl.OP_NO_SSLv3 = False
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCP_Socket:
 		TLS_Socket = ssl.wrap_socket(TCP_Socket, certfile="./cert/cert.pem", server_side=True, ssl_version=ssl.PROTOCOL_TLS)
 		TLS_Socket.bind(('', int(port)))
